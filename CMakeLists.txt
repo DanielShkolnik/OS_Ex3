@@ -3,4 +3,4 @@ project(OS_Ex3)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(OS_Ex3 Barrier.h testListHooks.cpp ThreadSafeList.h)
+add_executable(OS_Ex3 Barrier.h Barrier.cpp testListHooks.cpp ThreadSafeList.h test.cpp)
