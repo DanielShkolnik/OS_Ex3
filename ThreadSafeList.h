@@ -6,27 +6,53 @@
 #include <iomanip> // std::setw
 
 using namespace std;
+pthread_mutex_t atomicLock;
 
 template <typename T>
 class List 
 {
+    class Node {
+    public:
+        T data;
+        Node* next;
+        Node* prev;
+        pthread_mutex_t nodeLock;
+        // TODO: Add your methods and data members
+        //Constructor
+        Node(T data):data(data),next(nullptr), prev(nullptr){
+            pthread_mutex_init(&nodeLock, NULL);
+        }
+        //Copy Constructor
+        Node(const Node& node) = delete;
+        //Operator= Constructor
+        Node& operator=(const Node& node) = delete;
+        ~Node(){
+            pthread_mutex_destroy(&nodeLock);
+        }
+    };
+private:
+    Node* head;
+    unsigned int size;
+    // TODO: Add your own methods and data members
     public:
         /**
          * Constructor
          */
-        List() { //TODO: add your implementation }
-
+        List():head(nullptr),size(0){
+            pthread_mutex_init(&atomicLock, NULL);
+        }
         /**
          * Destructor
          */
-        ~List(){ //TODO: add your implementation }
-
-        class Node {
-         public:
-          T data;
-          Node *next;
-          // TODO: Add your methods and data members
-        };
+        ~List(){
+            Node* current=this->head;
+            Node* prev=current;
+            while(current!= nullptr){
+               current=current->next;
+               delete prev;
+            }
+            pthread_mutex_destroy(&atomicLock);
+        }
 
         /**
          * Insert new node to list while keeping the list ordered in an ascending order
@@ -35,7 +61,66 @@ class List
          * @return true if a new node was added and false otherwise
          */
         bool insert(const T& data) {
-			//TODO: add your implementation
+			Node* current=this->head;
+            Node* prev=current;
+            bool isPrevEqualCurrent = true;
+            pthread_mutex_lock(&atomicLock);
+			if(current == nullptr){
+			    this->head = new Node(data);
+			    if(this->head== nullptr){
+                    //std::cerr << "insert:failed" << endl;
+                    pthread_mutex_unlock(&atomicLock);
+                    return false;
+			    }
+                pthread_mutex_unlock(&atomicLock);
+                __insert_test_hook();
+			    return true;
+			}
+            pthread_mutex_unlock(&atomicLock);
+            pthread_mutex_lock(&(current->nodeLock));
+			while(current != nullptr && current->data<data){
+                pthread_mutex_lock(&atomicLock);
+
+			    if(current->data == data){
+                    pthread_mutex_unlock(&(current->nodeLock));
+                    if(isPrevEqualCurrent != true) pthread_mutex_unlock(&(prev->nodeLock));
+                    pthread_mutex_unlock(&atomicLock);
+                    return false;
+			    }
+                pthread_mutex_unlock(&(current->nodeLock));
+                if(isPrevEqualCurrent != true) pthread_mutex_unlock(&(prev->nodeLock));
+			    prev=current;
+                current=current->next;
+                if(isPrevEqualCurrent) isPrevEqualCurrent=false;
+                if(current != nullptr) pthread_mutex_lock(&(current->nodeLock));
+                pthread_mutex_lock(&(prev->nodeLock));
+
+                pthread_mutex_unlock(&atomicLock);
+			}
+			Node* node=new Node(data);
+            if(node== nullptr){
+                //std::cerr << "insert:failed" << endl;
+                return false;
+            }
+            pthread_mutex_lock(&atomicLock);
+            node->next=current;
+			if(!isPrevEqualCurrent){
+                node->prev=prev;
+                prev->next->prev=node;
+                prev->next=node;
+			}
+			else{
+                node->prev= nullptr;
+                prev->next->prev=node;
+			}
+			this->size++;
+            pthread_mutex_unlock(&atomicLock);
+            __insert_test_hook();
+            pthread_mutex_lock(&atomicLock);
+            if(current!= nullptr) pthread_mutex_unlock(&(current->nodeLock));
+            if(isPrevEqualCurrent != true) pthread_mutex_unlock(&(prev->nodeLock));
+            pthread_mutex_unlock(&atomicLock);
+			return true;
         }
 
         /**
@@ -44,7 +129,51 @@ class List
          * @return true if a matched node was found and removed and false otherwise
          */
         bool remove(const T& value) {
-			//TODO: add your implementation
+
+            Node* current = this->head;
+            Node* prev = current;
+            bool isPrevEqualCurrent = true;
+
+            pthread_mutex_lock(&(current->nodeLock));
+            while(current != nullptr && current->data<value){
+                pthread_mutex_lock(&atomicLock);
+
+                if(current->data == value){
+                    if(!isPrevEqualCurrent) prev->next=current->next;
+                    if(current->next != nullptr){
+                        if(!isPrevEqualCurrent) current->next->prev = prev;
+                        else current->next->prev= nullptr;
+                    }
+                    delete current;
+                    this->size--;
+                    pthread_mutex_unlock(&atomicLock);
+                    __remove_test_hook();
+                    pthread_mutex_lock(&atomicLock);
+                    pthread_mutex_unlock(&(current->nodeLock));
+                    if(isPrevEqualCurrent != true) pthread_mutex_unlock(&(prev->nodeLock));
+                    pthread_mutex_unlock(&atomicLock);
+                    return true;
+                }
+                pthread_mutex_unlock(&(current->nodeLock));
+                if(isPrevEqualCurrent != true) pthread_mutex_unlock(&(prev->nodeLock));
+                prev=current;
+                current=current->next;
+                if(isPrevEqualCurrent) isPrevEqualCurrent=false;
+                if(current != nullptr) pthread_mutex_lock(&(current->nodeLock));
+                pthread_mutex_lock(&(prev->nodeLock));
+
+                pthread_mutex_unlock(&atomicLock);
+            }
+            Node* node=new Node(data);
+            if(node== nullptr){
+                std::cerr << "insert:failed" << endl;
+                return false;
+            }
+            pthread_mutex_lock(&atomicLock);
+            if(current!= nullptr) pthread_mutex_unlock(&(current->nodeLock));
+            if(isPrevEqualCurrent != true) pthread_mutex_unlock(&(prev->nodeLock));
+            pthread_mutex_unlock(&atomicLock);
+            return false;
         }
 
         /**
@@ -53,6 +182,7 @@ class List
          */
         unsigned int getSize() {
 			//TODO: add your implementation
+			return this->size;
         }
 
 		// Don't remove
@@ -83,9 +213,6 @@ class List
 		// Don't remove
         virtual void __remove_test_hook() {}
 
-    private:
-        Node* head;
-    // TODO: Add your own methods and data members
 };
 
 #endif //THREAD_SAFE_LIST_H_

@@ -54,3 +54,6 @@ Barrier::~Barrier(){
     sem_destroy(&barrierOutSem);
 }
 
+unsigned int Barrier::waitingThreads(){
+    return this->numOfThreads;
+}
