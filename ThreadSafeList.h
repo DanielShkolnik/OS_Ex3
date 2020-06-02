@@ -33,7 +33,6 @@ class List
 private:
     Node* head;
     unsigned int size;
-    // TODO: Add your own methods and data members
     public:
         /**
          * Constructor
@@ -181,7 +180,6 @@ private:
          * @return current size of the list
          */
         unsigned int getSize() {
-			//TODO: add your implementation
 			return this->size;
         }
 
