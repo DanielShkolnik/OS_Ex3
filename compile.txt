@@ -1,0 +1,5 @@
+g++ --std=c++11 -pthread -Wall -pedantic -fPIC -g -fsanitize=thread barrTest.cpp  Barrier.cpp Barrier.h -o testBarrier
+g++ --std=c++11 -pthread -Wall -pedantic -fPIC  barrTest.cpp  Barrier.cpp Barrier.h -o testBarrier
+
+g++ --std=c++11 -pthread -Wall -pedantic -fPIC -g -fsanitize=thread testListHooks.cpp ThreadSafeList.h -o tsl
+g++ --std=c++11 -pthread -Wall -pedantic -fPIC testListHooks.cpp ThreadSafeList.h -o tsl

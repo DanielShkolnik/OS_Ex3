@@ -71,13 +71,14 @@ private:
                     pthread_mutex_unlock(&atomicLock);
                     return false;
 			    }
+                this->size++;
                 pthread_mutex_unlock(&atomicLock);
                 __insert_test_hook();
 			    return true;
 			}
             pthread_mutex_unlock(&atomicLock);
             pthread_mutex_lock(&(current->nodeLock));
-			while(current != nullptr && current->data<data){
+			while(current != nullptr && current->data<=data){
                 pthread_mutex_lock(&atomicLock);
 
 			    if(current->data == data){
@@ -105,7 +106,7 @@ private:
             node->next=current;
 			if(!isPrevEqualCurrent){
                 node->prev=prev;
-                prev->next->prev=node;
+                if(prev->next!= nullptr) prev->next->prev=node;
                 prev->next=node;
 			}
 			else{
@@ -134,7 +135,7 @@ private:
             bool isPrevEqualCurrent = true;
 
             pthread_mutex_lock(&(current->nodeLock));
-            while(current != nullptr && current->data<value){
+            while(current != nullptr && current->data<=value){
                 pthread_mutex_lock(&atomicLock);
 
                 if(current->data == value){
@@ -163,11 +164,7 @@ private:
 
                 pthread_mutex_unlock(&atomicLock);
             }
-            Node* node=new Node(data);
-            if(node== nullptr){
-                std::cerr << "insert:failed" << endl;
-                return false;
-            }
+
             pthread_mutex_lock(&atomicLock);
             if(current!= nullptr) pthread_mutex_unlock(&(current->nodeLock));
             if(isPrevEqualCurrent != true) pthread_mutex_unlock(&(prev->nodeLock));

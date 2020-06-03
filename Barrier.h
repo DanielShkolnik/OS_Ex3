@@ -8,6 +8,7 @@ class Barrier {
 private:
     unsigned int numOfThreads;
     unsigned int numOfFinishedThreads;
+    unsigned int numOfOutFinishedThreads;
 
 public:
     Barrier(unsigned int num_of_threads);
